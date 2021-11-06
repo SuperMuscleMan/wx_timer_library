@@ -129,6 +129,8 @@ handle_info(timer, #state{run_list = RunList} = State) ->
 	ets:foldl(fun handle_timer/2, Now, ?MODULE),
 	start_timer(),
 	{noreply, State#state{run_list = RunList1}};
+handle_info({'DOWN', _, process, _, normal}, State) ->
+	{noreply, State};
 handle_info(OtherInfo, State) ->
 	?ERR({other_info, OtherInfo}),
 	{noreply, State}.
