@@ -195,8 +195,8 @@ check_expire([], _, R) ->
 handle_timer({Key, M, F, A, Interval, TimeOut, 0}, Now) ->
 	handle_timer_(Now, Interval, Key, M, F, A, TimeOut),
 	Now;
-handle_timer({Key, M, F, A, Interval, TimeOut, Expire}, Now) ->
-	case Now > Expire of
+handle_timer({Key, M, F, A, Interval, TimeOut, NextTime}, Now) ->
+	case Now > NextTime of
 		true ->
 			handle_timer_(Now, Interval, Key, M, F, A, TimeOut);
 		_ ->
@@ -204,7 +204,8 @@ handle_timer({Key, M, F, A, Interval, TimeOut, Expire}, Now) ->
 	end,
 	Now.
 handle_timer_(Now, Interval, Key, M, F, A, TimeOut) ->
-	NowExpire = Now + Interval,
+	NowExpire = Now + TimeOut,
+	NextTime = Now + Interval,
 	erlang:spawn_monitor(
 		fun() ->
 			%% 当事件进程堆栈大小超过10MB时kill掉10*1024*1024
@@ -213,7 +214,7 @@ handle_timer_(Now, Interval, Key, M, F, A, TimeOut) ->
 			gen_server:cast(?MODULE, {run, self(), Key, NowExpire}),
 			handle_(Key, M, F, A, NowExpire)
 		end),
-	set_data({Key, M, F, A, Interval, TimeOut, NowExpire}).
+	set_data({Key, M, F, A, Interval, TimeOut, NextTime}).
 handle_(Key, M, F, A, NowExpire) ->
 	try
 		?DEBUG({timer, Key, {M, F, A, NowExpire}}),
